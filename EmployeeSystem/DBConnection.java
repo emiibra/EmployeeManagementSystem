@@ -7,7 +7,7 @@ public class DBConnection {
     // Database Credentials
     private static final String URL = "jdbc:mysql://localhost:3306/Final_Project"; // Change 'Final_Project' if your DB name is different
     private static final String USER = "root"; 
-    private static final String PASSWORD = "Nailclips12!"; // <--- PUT YOUR DBeaver PASSWORD HERE
+    private static final String PASSWORD = "EDIT"; // <--- PUT YOUR DBeaver PASSWORD HERE
 
     // Method to get the connection
     public static Connection getConnection() {
