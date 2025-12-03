@@ -49,24 +49,45 @@ public class EmployeeDAO {
 
     // ---------------- INSERT ----------------
     public static void insert(Employee e) throws SQLException {
+        // Validate required fields
+        if (e.getFname() == null || e.getFname().isBlank() ||
+            e.getLname() == null || e.getLname().isBlank() ||
+            e.getSsn() == null || e.getSsn().isBlank()) {
+            throw new SQLException("First name, last name, and SSN are required.");
+        }
+    
+        // Check for duplicate SSN
+        String checkSql = "SELECT COUNT(*) FROM employees WHERE SSN = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+    
+            checkStmt.setString(1, e.getSsn());
+            ResultSet rs = checkStmt.executeQuery();
+            if (rs.next() && rs.getInt(1) > 0) {
+                throw new SQLException("SSN already exists.");
+            }
+        }
+    
+        // Insert employee into database
         String sql = """
                 INSERT INTO employees (Fname, Lname, email, HireDate, Salary, SSN)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
-
+    
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+    
             stmt.setString(1, e.getFname());
             stmt.setString(2, e.getLname());
             stmt.setString(3, e.getEmail());
             stmt.setDate(4, Date.valueOf(e.getHireDate()));
             stmt.setDouble(5, e.getSalary());
             stmt.setString(6, e.getSsn());
-
+    
             stmt.executeUpdate();
         }
     }
+    
 
 
     // ---------------- UPDATE EMPLOYEE --------------------------------
@@ -95,13 +116,31 @@ public class EmployeeDAO {
 
     // ---------------- DELETE ----------------
     public static void delete(int empid) throws SQLException {
-        String sql = "DELETE FROM employees WHERE empid=?";
+        String deleteDivision = "DELETE FROM employee_division WHERE empid=?";
+        String deleteJobTitles = "DELETE FROM employee_job_titles WHERE empid=?";
+        String deletePayroll = "DELETE FROM payroll WHERE empid=?";
+        String deleteEmployee = "DELETE FROM employees WHERE empid=?";
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, empid);
-            stmt.executeUpdate();
-        }
+            PreparedStatement stmt1 = conn.prepareStatement(deleteDivision);
+            PreparedStatement stmt2 = conn.prepareStatement(deleteJobTitles);
+            PreparedStatement stmt3 = conn.prepareStatement(deletePayroll);
+            PreparedStatement stmt4 = conn.prepareStatement(deleteEmployee)) {
+
+            // Delete all dependent rows first
+            stmt1.setInt(1, empid);
+            stmt1.executeUpdate();
+
+            stmt2.setInt(1, empid);
+            stmt2.executeUpdate();
+
+            stmt3.setInt(1, empid);
+            stmt3.executeUpdate();
+
+            // Finally, delete the employee
+            stmt4.setInt(1, empid);
+            stmt4.executeUpdate();
+         }
     }
 
 
@@ -125,9 +164,9 @@ public class EmployeeDAO {
     }
 
 
-    // ------------------ REPORTS ------------------
+    //  REPORTS 
 
-    // 1) Payroll History
+    // Payroll History
     public static List<String> getPayrollHistory(int empid) {
         List<String> out = new ArrayList<>();
 
@@ -157,7 +196,7 @@ public class EmployeeDAO {
     }
 
 
-    // 2) Total Pay by Job Title (monthly)
+    // Total Pay by Job Title (monthly)
     public static List<String> getPayByJobTitle(LocalDate month) {
         List<String> out = new ArrayList<>();
 
@@ -192,7 +231,7 @@ public class EmployeeDAO {
     }
 
 
-    // 3) Total Pay by Division (monthly)
+    // Total Pay by Division (monthly)
     public static List<String> getPayByDivision(LocalDate month) {
         List<String> out = new ArrayList<>();
 
